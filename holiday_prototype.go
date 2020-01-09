@@ -6,10 +6,14 @@ import (
     "os"
     "bytes"
     "encoding/binary"
-    "math/rand"
+    "math"
     "time"
 )
 
+const SLEEP = 25
+const REDPHASE = 0.01
+const GREENPHASE = 0.013
+const BLUEPHASE = 0.009
 
 type Holiday struct {
 	Header [10]uint8
@@ -17,9 +21,8 @@ type Holiday struct {
 }
 
 
-func rand64() uint8 {
-    i := rand.Intn(64)
-    return uint8(i)
+func phaser(phase float64, i int) uint8 {
+    return uint8(32 + 31 * math.Cos(float64(i) * math.Sin(phase)))
 }
 
 
@@ -44,15 +47,14 @@ func main() {
 
     hol := new(Holiday)
 
-
-    rand.Seed(time.Now().Unix())
+    phase := 0
 
     for {
-
+        phase += 1
     	for i := 0; i < 50; i++ {
-    		hol.Globes[i * 3] = rand64()
-    		hol.Globes[i * 3 + 1] = rand64()
-    		hol.Globes[i * 3 + 2] = rand64()
+    		hol.Globes[i * 3] = phaser(REDPHASE * float64(phase), i)
+    		hol.Globes[i * 3 + 1] = phaser(GREENPHASE * float64(phase), i)
+    		hol.Globes[i * 3 + 2] = phaser(BLUEPHASE * float64(phase), i)
     	}
 
     	datagram := new(bytes.Buffer)
@@ -69,7 +71,7 @@ func main() {
         	fmt.Println(err)
         	
     	}
-    	time.Sleep(10 * time.Millisecond)
+    	time.Sleep(SLEEP * time.Millisecond)
     }
     fmt.Println("datagram sent, it's all good")
 }
