@@ -15,6 +15,10 @@ const REDPHASE = 0.01
 const GREENPHASE = 0.013
 const BLUEPHASE = 0.009
 
+const REDSLIP = 0.02
+const GREENSLIP = -0.03
+const BLUESLIP = 0.05
+
 type Holiday struct {
 	Header [10]uint8
 	Globes [150]uint8
@@ -52,9 +56,9 @@ func main() {
     for {
         phase += 1
     	for i := 0; i < 50; i++ {
-    		hol.Globes[i * 3] = phaser(REDPHASE * float64(phase), i)
-    		hol.Globes[i * 3 + 1] = phaser(GREENPHASE * float64(phase), i)
-    		hol.Globes[i * 3 + 2] = phaser(BLUEPHASE * float64(phase), i)
+    		hol.Globes[i * 3] = phaser(REDSLIP + REDPHASE * float64(phase), i)
+    		hol.Globes[i * 3 + 1] = phaser(GREENSLIP + GREENPHASE * float64(phase), i)
+    		hol.Globes[i * 3 + 2] = phaser(BLUESLIP + BLUEPHASE * float64(phase), i)
     	}
 
     	datagram := new(bytes.Buffer)
