@@ -6,15 +6,12 @@ import (
     "os"
     "bytes"
     "encoding/binary"
+    "math"
     "math/rand"
     "time"
     "github.com/lucasb-eyer/go-colorful"
 )
 
-const SLEEP = 25
-
-const SPEEDTOP = 0.23
-const SPEEDBOT = -0.31
 
 const R = 11.0
 const H = 12.0
@@ -22,8 +19,10 @@ const H = 12.0
 const NLIGHTS = 25
 const VMAX = 5
 
-const OFFSET = 0.5
-const DIMMING = 0.03
+const SLEEP = 25
+
+const BSPEED = 0.37
+const TSPEED = -0.23
 
 type Holiday struct {
 	Header [10]uint8
@@ -110,6 +109,25 @@ func randomColour() Colour {
 }
 
 
+func makeGradient(bot, top float64, n int) []colorful.Color {
+    gradient := make([]colorful.Color, n)
+    cbot := colorful.Hcl(bot, 1, 0.5)
+    ctop := colorful.Hcl(top, 1, 0.5)
+
+    for i := 0; i < n; i++ {
+        k := float64(i)/float64(n - 1)
+        // gradient[i] = cbot.BlendRgb(ctop, k)
+        gradient[i] = cbot.BlendHcl(ctop, k).Clamped()
+    }
+
+    return gradient
+}
+
+func velocity(t int, offset float64, max float64, rate float64) float64 {
+    return math.Sin(float64(t) * rate) * max + offset
+}
+
+
 
 func main() {
     arguments := os.Args
@@ -136,34 +154,34 @@ func main() {
     m := makeMap()
 
     htop := 0.0
-    hbot := 180.0
+    hbot := 0.0
+
+    tick := 0
 
     for {
 
-        cbot := colorful.Hsv(hbot, 1, 1)
-        ctop := colorful.Hsv(htop, 1, 1)
+        grad := makeGradient(hbot, htop, len(m))
 
         for i, row := range m {
-            k := float64(i)/float64(len(m) - 1)
-            gradc := cbot.BlendHcl(ctop, k).Clamped()
             for _, globe := range row {
-                setHolidayGlobe(hol, globe, gradc)
+                setHolidayGlobe(hol, globe, grad[i])
             }
         }
         sendHoliday(c, hol)
         time.Sleep(SLEEP * time.Millisecond)
 
-        hbot += SPEEDBOT
+        hbot += BSPEED   // velocity(tick, 0.05, 0.07, 0.27)
         if hbot > 360.0 {
             hbot -= 360.0
         } else if hbot < 0.0 {
             hbot += 360.0
         }
-        htop += SPEEDTOP
+        htop += TSPEED // velocity(tick, 0.05, 0.04, 0.34)
         if htop > 360.0 {
             htop -= 360.0
         } else if htop < 0.0 {
             htop += 360.0
         }
+        tick += 1
     }
 }
