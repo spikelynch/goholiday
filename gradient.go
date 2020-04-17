@@ -21,8 +21,17 @@ const VMAX = 5
 
 const SLEEP = 25
 
-const BSPEED = 0.37
-const TSPEED = -0.23
+
+const BOTRATE = 0.05
+const BOTOFF = 0.1
+const BOTAMP = 0.1
+const BOTSTART = 0.0
+
+const TOPRATE = 0.062
+const TOPOFF = 0.1
+const TOPAMP = 0.1
+const TOPSTART = 120.0
+
 
 type Holiday struct {
 	Header [10]uint8
@@ -123,8 +132,8 @@ func makeGradient(bot, top float64, n int) []colorful.Color {
     return gradient
 }
 
-func velocity(t int, offset float64, max float64, rate float64) float64 {
-    return math.Sin(float64(t) * rate) * max + offset
+func velocity(t int, rate, offset, amp float64) float64 {
+    return math.Sin(float64(t) * rate) * amp + offset
 }
 
 
@@ -153,8 +162,8 @@ func main() {
 
     m := makeMap()
 
-    htop := 0.0
-    hbot := 0.0
+    htop := TOPSTART 
+    hbot := BOTSTART
 
     tick := 0
 
@@ -170,13 +179,13 @@ func main() {
         sendHoliday(c, hol)
         time.Sleep(SLEEP * time.Millisecond)
 
-        hbot += BSPEED   // velocity(tick, 0.05, 0.07, 0.27)
+        hbot += velocity(tick, BOTRATE, BOTOFF, BOTAMP)
         if hbot > 360.0 {
             hbot -= 360.0
         } else if hbot < 0.0 {
             hbot += 360.0
         }
-        htop += TSPEED // velocity(tick, 0.05, 0.04, 0.34)
+        htop += velocity(tick, TOPRATE, TOPOFF, TOPAMP)
         if htop > 360.0 {
             htop -= 360.0
         } else if htop < 0.0 {
