@@ -201,10 +201,10 @@ func colorPair() []colorful.Color {
         hueOff += 360
     }
     pair := make([]colorful.Color, 2)
-    //pair[0] = colorful.Hsv(hueOff, 0.5, 0.23)// 
-    //pair[1] = colorful.Hsv(hueOn, 1, 1)
-    pair[0] = colorful.Hcl(hueOff, 0.2, 0.2)
-    pair[1] = colorful.Hcl(hueOn, 0.5, 0.5)
+    pair[0] = colorful.Hsv(hueOff, 0.7, 0.4)// 
+    pair[1] = colorful.Hsv(hueOn, 1, 1)
+    //pair[0] = colorful.Hcl(hueOff, 0.2, 0.2)
+    //pair[1] = colorful.Hcl(hueOn, 0.5, 0.5)
     return pair
 }
 
