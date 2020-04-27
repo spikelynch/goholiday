@@ -22,7 +22,11 @@ const SLEEP = 500
 
 const HISTCAP = 1000
 
-
+const ONSAT = 1
+const ONVAL = 1
+const OFFSAT = 0.7
+const OFFVAL = 0.5
+const RANDCOMP = 60.0
 
 type Holiday struct {
 	Header [10]uint8
@@ -194,17 +198,15 @@ func printBoard(board [][]bool) {
 
 func colorPair() []colorful.Color {
     hueOn := rand.Float64() * 360
-    hueOff := hueOn + 120 + rand.Float64() * 120
+    hueOff := hueOn + 180 - (rand.Float64() * 2 * RANDCOMP - RANDCOMP)
     if hueOff > 360 {
         hueOff -= 360
     } else if hueOff < 0 {
         hueOff += 360
     }
     pair := make([]colorful.Color, 2)
-    pair[0] = colorful.Hsv(hueOff, 0.7, 0.4)// 
-    pair[1] = colorful.Hsv(hueOn, 1, 1)
-    //pair[0] = colorful.Hcl(hueOff, 0.2, 0.2)
-    //pair[1] = colorful.Hcl(hueOn, 0.5, 0.5)
+    pair[0] = colorful.Hsv(hueOff, OFFSAT, OFFVAL)
+    pair[1] = colorful.Hsv(hueOn, ONSAT, ONVAL)
     return pair
 }
 
