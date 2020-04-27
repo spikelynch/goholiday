@@ -18,7 +18,10 @@ const H = 12.0
 const NLIGHTS = 25
 const VMAX = 5
 
-const SLEEP = 500
+const WAIT = 500
+
+const FADE_STEPS = 10
+const FADE_WAIT = 50
 
 const HISTCAP = 1000
 
@@ -208,6 +211,43 @@ func colorPair() []colorful.Color {
     return pair
 }
 
+func makeGradient(steps int) []colorful.Color {
+    p := colorPair()
+    g := make([]colorful.Color, steps)
+    for k := 0; k < steps; k++ {
+        g[k] = p[0].BlendHcl(p[1], float64(k) / float64(steps - 1)).Clamped()
+    }
+    return g
+}
+
+
+func animateBoard(m [][]int, b1, b2 [][]bool, gradient []colorful.Color, conn *net.UDPConn, hol *Holiday) {
+    on := gradient[len(gradient) - 1]
+    off := gradient[0]
+    for k, onward := range gradient {
+        offward := gradient[len(gradient) - 1 - k]
+        for i, row := range m {
+            for j, globe := range row {
+                if b1[i][j] == b2[i][j] {
+                    if b2[i][j] {
+                        setHolidayGlobe(hol, globe, on)
+                    } else {
+                        setHolidayGlobe(hol, globe, off)
+                    }
+                } else {
+                    if b2[i][j] {
+                        setHolidayGlobe(hol, globe, onward)
+                    } else {
+                        setHolidayGlobe(hol, globe, offward)
+                    }
+                }
+            }
+        }
+        sendHoliday(conn, hol)
+        time.Sleep(FADE_WAIT * time.Millisecond)
+    }
+}
+
 
 
 
@@ -235,7 +275,7 @@ func main() {
 
     m := makeMap()
 
-    palette := colorPair()
+    gradient := makeGradient(FADE_STEPS)
 
     board := initBoard(8, 6)
 
@@ -244,30 +284,34 @@ func main() {
     history := make([]uint64, 0, HISTCAP)
 
     for {
-        for i, row := range m {
-            for j, globe := range row {
-                if board[i][j] {
-                    setHolidayGlobe(hol, globe, palette[1])
-                } else {
-                    setHolidayGlobe(hol, globe, palette[0])
-                }
-            }
-        }
-        sendHoliday(c, hol)
-        time.Sleep(SLEEP * time.Millisecond)
+        oboard := board
+        board = gameoflife(board)
+
+        animateBoard(m, oboard, board, gradient, c, hol)
+
+        // for i, row := range m {
+        //     for j, globe := range row {
+        //         if board[i][j] {
+        //             setHolidayGlobe(hol, globe, palette[1])
+        //         } else {
+        //             setHolidayGlobe(hol, globe, palette[0])
+        //         }
+        //     }
+        // }
+        // sendHoliday(c, hol)
+
+        time.Sleep(WAIT * time.Millisecond)
         tick++
 
         sb := serialiseBoard(board)
 
         if histContains(history, sb) || tick > HISTCAP * 10 {
             board = initBoard(8, 6)
-            palette = colorPair()
+            gradient = makeGradient(FADE_STEPS)
             history = make([]uint64, 0, HISTCAP)
             tick = 0
         } else {
             history = append(history, sb)
         }
-
-        board = gameoflife(board)
     }
 }
