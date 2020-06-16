@@ -18,17 +18,20 @@ const H = 12.0
 const NLIGHTS = 25
 const VMAX = 5
 
-const WAIT = 500
+const WAIT = 400
+const PAUSE = 8000
 
-const FADE_STEPS = 10
-const FADE_WAIT = 50
+const FADE_STEPS = 40
+const FADE_WAIT = 40
 
 const HISTCAP = 1000
 
 const ONSAT = 1
-const ONVAL = 1
+const ONVAL = 0.8
+const ONVALRANGE = 0.2
 const OFFSAT = 0.7
-const OFFVAL = 0.5
+const OFFVAL = 0.3
+const OFFVALRANGE = 0.3
 const RANDCOMP = 60.0
 
 type Holiday struct {
@@ -110,7 +113,7 @@ func neighbours(x, y, xs, ys int, board [][]bool) int {
             }
         }
     }
-    return count   
+    return count
 }
 
 
@@ -151,6 +154,9 @@ func initBoard(xs, ys int) [][]bool {
     return board
 }
 
+
+
+
 func serialiseBoard(board [][]bool) uint64 {
     var s uint64
     var e uint64
@@ -175,7 +181,7 @@ func histContains(h []uint64, n uint64) bool {
     return false
 }
 
-func copyBoard(board [][]bool) [][] bool {
+func copyBoard(board [][]bool) [][]bool {
     cb := make([][]bool, len(board))
     for i, row := range board {
         cb[i] = make([]bool, len(row))
@@ -208,8 +214,8 @@ func colorPair() []colorful.Color {
         hueOff += 360
     }
     pair := make([]colorful.Color, 2)
-    pair[0] = colorful.Hsv(hueOff, OFFSAT, OFFVAL)
-    pair[1] = colorful.Hsv(hueOn, ONSAT, ONVAL)
+    pair[0] = colorful.Hsv(hueOff, OFFSAT, OFFVAL + OFFVALRANGE * rand.Float64())
+    pair[1] = colorful.Hsv(hueOn, ONSAT, ONVAL + ONVALRANGE * rand.Float64())
     return pair
 }
 
@@ -226,7 +232,7 @@ func makeGradient(steps int) []colorful.Color {
 func animateBoard(m [][]int, b1, b2 [][]bool, gradient []colorful.Color, conn *net.UDPConn, hol *Holiday) {
     on := gradient[len(gradient) - 1]
     off := gradient[0]
-    for k, onward := range gradient {
+    for k, _ := range gradient {
         offward := gradient[len(gradient) - 1 - k]
         for i, row := range m {
             for j, globe := range row {
@@ -238,7 +244,7 @@ func animateBoard(m [][]int, b1, b2 [][]bool, gradient []colorful.Color, conn *n
                     }
                 } else {
                     if b2[i][j] {
-                        setHolidayGlobe(hol, globe, onward)
+                        setHolidayGlobe(hol, globe, on)
                     } else {
                         setHolidayGlobe(hol, globe, offward)
                     }
@@ -311,6 +317,7 @@ func main() {
             board = initBoard(8, 6)
             gradient = makeGradient(FADE_STEPS)
             history = make([]uint64, 0, HISTCAP)
+	    time.Sleep(PAUSE * time.Millisecond)
             tick = 0
         } else {
             history = append(history, sb)

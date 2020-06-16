@@ -22,14 +22,14 @@ const VMAX = 5
 const SLEEP = 25
 
 
-const BOTRATE = 0.05
-const BOTOFF = 0.1
-const BOTAMP = 0.1
+const BOTRATE = 0.2
+const BOTOFF = 2.1
+const BOTAMP = 1.2
 const BOTSTART = 0.0
 
-const TOPRATE = 0.062
-const TOPOFF = 0.1
-const TOPAMP = 0.1
+const TOPRATE = 0.3
+const TOPOFF = 1.7
+const TOPAMP = 1.3
 const TOPSTART = 120.0
 
 
