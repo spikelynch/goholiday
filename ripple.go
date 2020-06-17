@@ -10,9 +10,6 @@ import (
     "math"
     "math/rand"
     "github.com/lucasb-eyer/go-colorful"
-    "image"
- //   "image/color"
-    "image/png"
 )
 
 
@@ -30,7 +27,6 @@ const RESET = 2000
 
 const PI2 = math.Pi * 2
 
-const PNGTILE = 100
 
 type Holiday struct {
 	Header [10]uint8
@@ -120,55 +116,13 @@ func hueRange(hue, spread, value, z float64) colorful.Color {
 
 
 
-func sinusoidal_old(x, y, xfreq, yfreq int, xphase, yphase, twist float64) float64 {
+func sinusoidal(x, y, xfreq, yfreq int, xphase, yphase, twist float64) float64 {
     theta := (xphase + float64(x * xfreq) / 6.0)
     phi := (yphase + float64(y * yfreq) / 7.0)
     pt := PI2 * (theta + twist * phi)
     pp := PI2 * phi
     s := math.Sin(pt) * math.Sin(pp)
     return s
-}
-
-func sinusoidal(x, y int, xfreq, yfreq, xphase, yphase, twist float64) float64 {
-    theta := xphase + float64(x) * xfreq / 6.0
-    phi := yphase + float64(y) * yfreq / 7.0
-    pt := PI2 * (theta + twist * phi)
-    pp := PI2 * phi
-    s := math.Sin(pt) * math.Sin(pp)
-    return s
-}
-
-
-
-func screenshot(run, frame int, cols []colorful.Color, xfreq, yfreq int, xphase, yphase, twist float64) {
-    img := image.NewNRGBA(image.Rect(0, 0, PNGTILE * 6, PNGTILE * 7))
-
-    // for y := 0; y < PNGTILE * 7; y++ {
-    //     for x := 0; x < PNGTILE * 6; x++ {
-    //         pixel := toColour(cols, sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), float64(xfreq), float64(yfreq), xphase, yphase, twist))
-    //         img.Set(x, y, color.NRGBA{
-    //             R: uint8(pixel.R * 255),
-    //             G: uint8(pixel.G * 255),
-    //             B: uint8(pixel.B * 255),
-    //             A: 255,
-    //         })
-    //     }
-    // }
-    filename := fmt.Sprintf("./images/r%df%04d.png", run, frame)
-    f, err := os.Create(filename)
-    if err != nil {
-        fmt.Println(err)
-    }
-
-    if err := png.Encode(f, img); err != nil {
-        f.Close()
-        fmt.Println(err)
-    }
-
-    if err := f.Close(); err != nil {
-        fmt.Println(err)
-    }
-    fmt.Printf("Wrote screenshot %s\n", filename)
 }
 
 
@@ -199,26 +153,23 @@ func main() {
 
 
     tick := 0
-    //run := 0
-    //frame := 0
 
-
-    var cols []colorful.Color
-    var xfreq, yfreq, yfreqamp, yfreqmean, yfreqvel float64
+    //var cols []colorful.Color
+    var xfreq, yfreq int
     var xvel, yvel, twist float64
     var hue, spread, cvel float64
     var fade float64
 
     for {
         if tick == 0 {
-            cols = colorPair()
+            //cols = colorPair()
 
-            xfreq = float64(rand.Intn(4) + 1)
-            yfreqmean = float64(rand.Intn(4) + 1)
-            yfreqamp = rand.Float64() * yfreqmean
-            yfreqvel = rand.Float64() * 0.2
-
-            twist = rand.Float64() * 4.0 - 2.0
+	    hue = 360.0 * rand.Float64()
+	    spread = 40.0 + 50.0 * rand.Float64()
+	    cvel = 0 //rand.Float64() * 2.0 - 1.0
+            xfreq = 1 + rand.Intn(3)
+            yfreq = 1 + rand.Intn(6)
+            twist = rand.Float64() * 8.0 - 4.0
 
             xvel = rand.Float64() * 0.04 - 0.02
             yvel = rand.Float64() * 0.04 - 0.02
@@ -236,7 +187,12 @@ func main() {
         xphase := xvel * float64(tick)
         yphase := yvel * float64(tick)
 
-        yfreq = yfreqmean + yfreqamp * math.Sin(float64(tick) * yfreqvel)
+	hue = hue + cvel
+	if hue > 360 {
+	    hue = hue - 360
+	} else if hue < 0 {
+            hue = hue + 360
+	}
 
         for y, row := range m {
             for x, globe := range row {
@@ -245,20 +201,12 @@ func main() {
                 setHolidayGlobe(hol, globe, colour)
             }
         }
-
-
         sendHoliday(c, hol)
         time.Sleep(SLEEP * time.Millisecond)
-        //if tick % PNGMOD == 0 {
-        //    screenshot(run, frame, cols, xfreq, yfreq, xphase, yphase, twist)
-        //    frame += 1
-        //}
 
         tick += 1
         if tick > RESET {
             tick = 0
-            //frame = 0
-            //run += 1
         }
 
     }   
