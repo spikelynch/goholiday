@@ -11,7 +11,7 @@ import (
     "math/rand"
     "github.com/lucasb-eyer/go-colorful"
     "image"
- //   "image/color"
+    "image/color"
     "image/png"
 )
 
@@ -24,8 +24,10 @@ const VMAX = 5
 
 const SLEEP = 50
 
+const FADE = 100
 const RESET = 1000
-const PNGMOD = 50
+const PNGMOD = 100
+const SCREENSHOTS = false
 
 const PI2 = math.Pi * 2
 
@@ -108,40 +110,44 @@ func toColour(cols []colorful.Color, z float64) colorful.Color {
 }
 
 
-func sinusoidal_old(x, y, xfreq, yfreq int, xphase, yphase, twist float64) float64 {
-    theta := (xphase + float64(x * xfreq) / 6.0)
-    phi := (yphase + float64(y * yfreq) / 7.0)
+func hueRange(hue, spread, value, z float64) colorful.Color {
+    h := hue + spread * z
+    if h < 0 {
+        h = h + 360
+    } else if h > 360 {
+    h = h - 360
+    }
+    return colorful.Hsv(h, 1, value)
+}
+
+
+
+func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist float64) float64 {
+    theta := xphase + x * xfreq / 6.0
+    phi := yphase + y * yfreq / 7.0
     pt := PI2 * (theta + twist * phi)
     pp := PI2 * phi
     s := math.Sin(pt) * math.Sin(pp)
     return s
 }
 
-func sinusoidal(x, y int, xfreq, yfreq, xphase, yphase, twist float64) float64 {
-    theta := xphase + float64(x) * xfreq / 6.0
-    phi := yphase + float64(y) * yfreq / 7.0
-    pt := PI2 * (theta + twist * phi)
-    pp := PI2 * phi
-    s := math.Sin(pt) * math.Sin(pp)
-    return s
-}
 
 
-
-func screenshot(run, frame int, cols []colorful.Color, xfreq, yfreq int, xphase, yphase, twist float64) {
+func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, hue, spread float64) {
     img := image.NewNRGBA(image.Rect(0, 0, PNGTILE * 6, PNGTILE * 7))
 
-    // for y := 0; y < PNGTILE * 7; y++ {
-    //     for x := 0; x < PNGTILE * 6; x++ {
-    //         pixel := toColour(cols, sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), float64(xfreq), float64(yfreq), xphase, yphase, twist))
-    //         img.Set(x, y, color.NRGBA{
-    //             R: uint8(pixel.R * 255),
-    //             G: uint8(pixel.G * 255),
-    //             B: uint8(pixel.B * 255),
-    //             A: 255,
-    //         })
-    //     }
-    // }
+    for y := 0; y < PNGTILE * 7; y++ {
+        for x := 0; x < PNGTILE * 6; x++ {
+            z := sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), xfreq, yfreq, xphase, yphase, twist)
+            pixel := hueRange(hue, spread, 1.0, z)
+            img.Set(x, y, color.NRGBA{
+                R: uint8(pixel.R * 255),
+                G: uint8(pixel.G * 255),
+                B: uint8(pixel.B * 255),
+                A: 255,
+            })
+        }
+    }
     filename := fmt.Sprintf("./images/r%df%04d.png", run, frame)
     f, err := os.Create(filename)
     if err != nil {
@@ -187,17 +193,21 @@ func main() {
 
 
     tick := 0
-    //run := 0
-    //frame := 0
+    run := 0
+    frame := 0
 
-    var cols []colorful.Color
+    var hue, spread float64
+    var fade float64
     var xfreq, yfreq, yfreqamp, yfreqmean, yfreqvel float64
     var xvel, yvel, twist float64
 
 
     for {
         if tick == 0 {
-            cols = colorPair()
+
+            hue = 360.0 * rand.Float64()
+            spread = 40.0 + 50.0 * rand.Float64()
+            //cvel = 0 //rand.Float64() * 2.0 - 1.0
 
             xfreq = float64(rand.Intn(4) + 1)
             yfreqmean = float64(rand.Intn(4) + 1)
@@ -216,25 +226,37 @@ func main() {
 
         yfreq = yfreqmean + yfreqamp * math.Sin(float64(tick) * yfreqvel)
 
+        if tick < FADE {
+            fade = float64(tick) / float64(FADE)
+        } else if tick > RESET - FADE {
+            fade = float64(RESET - tick) / float64(FADE)
+        } else {
+            fade = 1.0
+        }
+
         for y, row := range m {
             for x, globe := range row {
-                setHolidayGlobe(hol, globe, toColour(cols, sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist)))
+                z := sinusoidal(float64(x), float64(y), xfreq, yfreq, xphase, yphase, twist)
+                colour := hueRange(hue, spread, fade, z)
+                setHolidayGlobe(hol, globe, colour)
             }
         }
 
 
         sendHoliday(c, hol)
         time.Sleep(SLEEP * time.Millisecond)
-        //if tick % PNGMOD == 0 {
-        //    screenshot(run, frame, cols, xfreq, yfreq, xphase, yphase, twist)
-        //    frame += 1
-        //}
+        if SCREENSHOTS {
+            if tick % PNGMOD == 0 {
+                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, hue, spread)
+                frame += 1
+            }
+        }
 
         tick += 1
         if tick > RESET {
             tick = 0
-            //frame = 0
-            //run += 1
+            frame = 0
+            run += 1
         }
 
     }   
