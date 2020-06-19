@@ -124,7 +124,7 @@ func hueRange(hue, spread, value, z float64) colorful.Color {
 
 func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist float64) float64 {
     theta := xphase + x * xfreq / 6.0
-    phi := yphase + y * yfreq / 7.0
+    phi := yphase + (y - 4) * yfreq / 7.0
     pt := PI2 * (theta + twist * phi)
     pp := PI2 * phi
     s := math.Sin(pt) * math.Sin(pp)
