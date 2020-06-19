@@ -20,18 +20,19 @@ const R = 11.0
 const H = 12.0
 
 const NLIGHTS = 25
+
 const VMAX = 5
 
 const SLEEP = 50
 
 const FADE = 100
-const RESET = 1000
-const PNGMOD = 100
-const SCREENSHOTS = false
+const RESET = 8000
+const PNGMOD = 5
+const SCREENSHOTS = false 
 
 const PI2 = math.Pi * 2
 
-const PNGTILE = 100
+const PNGTILE = 50
 
 type Holiday struct {
 	Header [10]uint8
@@ -122,10 +123,10 @@ func hueRange(hue, spread, value, z float64) colorful.Color {
 
 
 
-func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist float64) float64 {
+func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist, curl float64) float64 {
     theta := xphase + x * xfreq / 6.0
     phi := yphase + (y - 4) * yfreq / 7.0
-    pt := PI2 * (theta + twist * phi)
+    pt := PI2 * (theta + twist * math.Sin(curl * phi))
     pp := PI2 * phi
     s := math.Sin(pt) * math.Sin(pp)
     return s
@@ -133,12 +134,12 @@ func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist float64) float64 {
 
 
 
-func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, hue, spread float64) {
+func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread float64) {
     img := image.NewNRGBA(image.Rect(0, 0, PNGTILE * 6, PNGTILE * 7))
 
     for y := 0; y < PNGTILE * 7; y++ {
         for x := 0; x < PNGTILE * 6; x++ {
-            z := sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), xfreq, yfreq, xphase, yphase, twist)
+            z := sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), xfreq, yfreq, xphase, yphase, twist, curl)
             pixel := hueRange(hue, spread, 1.0, z)
             img.Set(x, y, color.NRGBA{
                 R: uint8(pixel.R * 255),
@@ -199,7 +200,7 @@ func main() {
     var hue, spread float64
     var fade float64
     var xfreq, yfreq, yfreqamp, yfreqmean, yfreqvel float64
-    var xvel, yvel, twist float64
+    var xvel, yvel, twist, curl float64
 
 
     for {
@@ -215,6 +216,7 @@ func main() {
             yfreqvel = rand.Float64() * 0.2
 
             twist = rand.Float64() * 4.0 - 2.0
+            curl = rand.Float64() * 10 - 5
 
             xvel = rand.Float64() * 0.02 - 0.04
             yvel = rand.Float64() * 0.02 - 0.04
@@ -236,7 +238,7 @@ func main() {
 
         for y, row := range m {
             for x, globe := range row {
-                z := sinusoidal(float64(x), float64(y), xfreq, yfreq, xphase, yphase, twist)
+                z := sinusoidal(float64(x), float64(y), xfreq, yfreq, xphase, yphase, twist, curl)
                 colour := hueRange(hue, spread, fade, z)
                 setHolidayGlobe(hol, globe, colour)
             }
@@ -247,7 +249,7 @@ func main() {
         time.Sleep(SLEEP * time.Millisecond)
         if SCREENSHOTS {
             if tick % PNGMOD == 0 {
-                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, hue, spread)
+                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread)
                 frame += 1
             }
         }
