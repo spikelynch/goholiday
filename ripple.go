@@ -25,7 +25,7 @@ const VMAX = 5
 const SLEEP = 50
 
 const FADE = 100
-const RESET = 1000
+const RESET = 8000
 const PNGMOD = 100
 const SCREENSHOTS = false
 
@@ -212,7 +212,7 @@ func main() {
             xfreq = float64(rand.Intn(4) + 1)
             yfreqmean = float64(rand.Intn(4) + 1)
             yfreqamp = rand.Float64() * yfreqmean
-            yfreqvel = rand.Float64() * 0.2
+            yfreqvel = rand.Float64() * 0.05
 
             twist = rand.Float64() * 4.0 - 2.0
 
