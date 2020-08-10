@@ -38,9 +38,11 @@ const H = 8
 
 const VMAX = 0.1
 
-const SLEEP = 50
+const SLEEP = 25
 
-const RESET = 800
+const RESET = 2000
+
+const FEATHER = 1
 
 
 type Holiday struct {
@@ -50,8 +52,7 @@ type Holiday struct {
 
 
 type Circle struct {
-    x, y, vx, vy, r, r2 float64
-    c colorful.Color
+    x, y, vx, vy, r1, r2, r12, r22, hue float64
 }
 
 
@@ -106,10 +107,6 @@ func sendHoliday(conn *net.UDPConn, hol *Holiday) {
 
 
 
-func rndColor() colorful.Color {
-    hue := rand.Float64() * 360
-    return colorful.Hsv(hue, 1, 1)
-}
 
 
 func circles(n int) []Circle {
@@ -119,15 +116,28 @@ func circles(n int) []Circle {
         circles[i].y = rand.Float64() * 8
         circles[i].vx = 2 * VMAX * rand.Float64() - VMAX 
         circles[i].vy = 2 * VMAX * rand.Float64() - VMAX
-        circles[i].r = rand.Float64() * 2 + 0.4
-        circles[i].r2 = circles[i].r * circles[i].r
-        circles[i].c = rndColor()
+        circles[i].r1 = rand.Float64() * 2 + 0.4
+        circles[i].r2 = circles[i].r1 + FEATHER
+        circles[i].r12 = circles[i].r1 * circles[i].r1
+        circles[i].r22 = circles[i].r2 * circles[i].r2
+        circles[i].hue = rand.Float64() * 360
     }
     return circles
 }
 
 
-func pointInside(c Circle, x, y float64) bool {
+func distFunc(d2, r1, r2 float64) float64 {
+    if d2 < r1 {
+        return 1
+    }
+    if d2 < r2 {
+        return 1 - (d2 - r1) / (r2 - r1) 
+    }
+    return 0
+}
+
+
+func circleValue(c Circle, x, y float64) float64 {
     var dx1, dy1, dx2, dy2 float64
     dx1 = x - c.x
     if x < W2 {
@@ -145,17 +155,36 @@ func pointInside(c Circle, x, y float64) bool {
     x2 := dx2 * dx2
     y1 := dy1 * dy1
     y2 := dy2 * dy2
-    return ( x1 + y1 < c.r2 || x1 + y2 < c.r2 || x2 + y1 < c.r2 || x2 + y2 < c.r2 )
+    // return ( x1 + y1 < c.r2 || x1 + y2 < c.r2 || x2 + y1 < c.r2 || x2 + y2 < c.r2 )
+    v := distFunc(x1 + y1, c.r1, c.r2) + distFunc(x1 + y2, c.r1, c.r2) + distFunc(x2 + y1, c.r1, c.r2) + distFunc(x2 + y2, c.r1, c.r2) 
+    if v < 1 {
+        return v
+    }
+    return 1
 }
 
 
-func calcCircles(bg colorful.Color, circles []Circle, x, y int) colorful.Color {
+func featherCircles(bg colorful.Color, circles []Circle, x, y int) colorful.Color {
+    r := bg.R
+    g := bg.G
+    b := bg.B
     for _, c := range circles {
-        if pointInside(c, float64(x), float64(y)) {
-            return c.c
-        }
+        v := circleValue(c, float64(x), float64(y))
+        cc := colorful.Hsv(c.hue, 1, v)
+        r += cc.R
+        g += cc.G
+        b += cc.B
     }
-    return bg
+    if r > 1 {
+        r = 1
+    }
+    if g > 1 {
+        g = 1
+    }
+    if b > 1 {
+        b = 1
+    }
+    return colorful.Color{r, g, b}
 }
 
 
@@ -193,13 +222,13 @@ func main() {
 
     for {
         if tick == 0 {
-            bg = rndColor()
+            bg = colorful.Hsv(rand.Float64() * 360, 0.5, 0.5) // CrndColor()
             cset = circles(rand.Intn(4) + 1)
         }
 
         for y, row := range m {
             for x, globe := range row {
-                cc := calcCircles(bg, cset, x, y)
+                cc := featherCircles(bg, cset, x, y)
                 setHolidayGlobe(hol, globe, cc)
             }
         }
@@ -215,17 +244,17 @@ func main() {
         for i, c := range cset {
             c.x = c.x + c.vx
             if c.x < 0 {
-                c.x = 5
+                c.x = c.x + 5
             }
             if c.x > 5 {
-                c.x = 0
+                c.x = c.x - 5
             }
             c.y = c.y + c.vy
             if c.y < 0 {
-                c.y = 7
+                c.y = c.y + 7
             }
             if c.y > 7 {
-                c.y = 0
+                c.y = c.y - 7
             }
             cset[i] = c
         }
