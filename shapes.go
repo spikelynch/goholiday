@@ -222,7 +222,7 @@ func main() {
 
     for {
         if tick == 0 {
-            bg = colorful.Hsv(rand.Float64() * 360, 0.5, 0.5) // CrndColor()
+            bg = colorful.Hsv(rand.Float64() * 360, 0.5, 0.2) // CrndColor()
             cset = circles(rand.Intn(4) + 1)
         }
 
