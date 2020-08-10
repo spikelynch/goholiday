@@ -222,7 +222,7 @@ func main() {
 
     for {
         if tick == 0 {
-            bg = colorful.Hsv(rand.Float64() * 360, 0.5, 0.2) // CrndColor()
+            bg = colorful.Hsv(rand.Float64() * 360, 1, 0.2) // CrndColor()
             cset = circles(rand.Intn(4) + 1)
         }
 
@@ -244,17 +244,17 @@ func main() {
         for i, c := range cset {
             c.x = c.x + c.vx
             if c.x < 0 {
-                c.x = c.x + 5
+                c.x = c.x + W
             }
-            if c.x > 5 {
-                c.x = c.x - 5
+            if c.x > W {
+                c.x = c.x - W
             }
             c.y = c.y + c.vy
             if c.y < 0 {
-                c.y = c.y + 7
+                c.y = c.y + H
             }
-            if c.y > 7 {
-                c.y = c.y - 7
+            if c.y > H {
+                c.y = c.y - H
             }
             cset[i] = c
         }
