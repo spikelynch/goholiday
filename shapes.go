@@ -35,14 +35,18 @@ const NMAX = 5
 const RMIN = 0.3
 const RMAX = 2
 
+const LMIN = 1200
+const LMAX = 4800
+
 const SLEEP = 25
 
-const RESET = 2000
+const BMIN = 600
+const BMAX = 1200
 
 const BG_SAT = 0
 const BG_VALUE = 0
 
-const FEATHER = 1.5
+const FUZZ = 1.2
 
 
 type Holiday struct {
@@ -52,7 +56,8 @@ type Holiday struct {
 
 
 type Circle struct {
-    x, y, vx, vy, r1, r2, r12, r22, hue float64
+    x, y, vx, vy, r, hue float64
+    lifespan, t int
 }
 
 
@@ -105,28 +110,49 @@ func sendHoliday(conn *net.UDPConn, hol *Holiday) {
 }
 
 
+func randInt(min, max int) int {
+    if max <= min {
+        return min
+    } else {
+        return min + rand.Intn(max - min)
+    }
+}
 
+
+func rndCircle() Circle {
+    c := new(Circle)
+    c.x = rand.Float64() * 6
+    c.y = rand.Float64() * 8
+    c.vx = 2 * VMAX * rand.Float64() - VMAX
+    c.vy = 2 * VMAX * rand.Float64() - VMAX
+    c.r = RMIN + rand.Float64() * (RMAX - RMIN)
+    c.hue = rand.Float64() * 360
+    c.lifespan = randInt(LMIN, LMAX)
+    c.t = 0
+    return *c
+}
 
 
 
 func circles(n int) []Circle {
     circles := make([]Circle, n)
     for i := 0; i < n; i++ {
-        circles[i].x = rand.Float64() * 6
-        circles[i].y = rand.Float64() * 8
-        circles[i].vx = 2 * VMAX * rand.Float64() - VMAX
-        circles[i].vy = 2 * VMAX * rand.Float64() - VMAX
-        circles[i].r1 = RMIN + rand.Float64() * (RMAX - RMIN)
-        circles[i].r2 = circles[i].r1 + FEATHER
-        circles[i].r12 = circles[i].r1 * circles[i].r1
-        circles[i].r22 = circles[i].r2 * circles[i].r2
-        circles[i].hue = rand.Float64() * 360
+        circles[i] = rndCircle()
     }
     return circles
 }
 
 
-func distFunc(d2, r1, r2 float64) float64 {
+func lifecycle(c Circle) float64 {
+    if c.t < c.lifespan / 2 {
+        return c.r * 2 * float64(c.t) / float64(c.lifespan)
+    } else {
+        return c.r * 2 * float64(c.lifespan - c.t) / float64(c.lifespan)
+    }
+}
+
+
+func fuzz(d2, r1, r2 float64) float64 {
     if d2 < r1 {
         return 1
     }
@@ -137,8 +163,13 @@ func distFunc(d2, r1, r2 float64) float64 {
 }
 
 
+
+
 func circleValue(c Circle, x, y float64) float64 {
     var dx1, dy1, dx2, dy2 float64
+    rnow := lifecycle(c)
+    r1 := rnow * rnow
+    r2 := (rnow + FUZZ) * (rnow + FUZZ)
     dx1 = x - c.x
     if x < W2 {
         dx2 = dx1 + W
@@ -155,8 +186,7 @@ func circleValue(c Circle, x, y float64) float64 {
     x2 := dx2 * dx2
     y1 := dy1 * dy1
     y2 := dy2 * dy2
-    // return ( x1 + y1 < c.r2 || x1 + y2 < c.r2 || x2 + y1 < c.r2 || x2 + y2 < c.r2 )
-    v := distFunc(x1 + y1, c.r12, c.r22) + distFunc(x1 + y2, c.r12, c.r22) + distFunc(x2 + y1, c.r12, c.r22) + distFunc(x2 + y2, c.r12, c.r22)
+    v := fuzz(x1 + y1, r1, r2) + fuzz(x1 + y2, r1, r2) + fuzz(x2 + y1, r1, r2) + fuzz(x2 + y2, r1, r2)
     if v < 1 {
         return v
     }
@@ -164,7 +194,7 @@ func circleValue(c Circle, x, y float64) float64 {
 }
 
 
-func featherCircles(bg colorful.Color, circles []Circle, x, y int) colorful.Color {
+func renderCircles(bg colorful.Color, circles []Circle, x, y int) colorful.Color {
     r := bg.R
     g := bg.G
     b := bg.B
@@ -217,18 +247,20 @@ func main() {
 
     tick := 0
 
-    var bg colorful.Color
-    var cset []Circle
+    nextbirth := randInt(BMIN, BMAX)
+
+    bg := colorful.Hsv(rand.Float64() * 360, BG_SAT, BG_VALUE)
+    cset := []Circle{}
 
     for {
         if tick == 0 {
-            bg = colorful.Hsv(rand.Float64() * 360, BG_SAT, BG_VALUE)
-            cset = circles(NMIN + rand.Intn(NMAX - NMIN + 1))
+            cset = append(cset, rndCircle())
+            fmt.Println("a circle was born")
         }
 
         for y, row := range m {
             for x, globe := range row {
-                cc := featherCircles(bg, cset, x, y)
+                cc := renderCircles(bg, cset, x, y)
                 setHolidayGlobe(hol, globe, cc)
             }
         }
@@ -237,11 +269,14 @@ func main() {
         time.Sleep(SLEEP * time.Millisecond)
 
         tick += 1
-        if tick > RESET {
+        if tick > nextbirth {
             tick = 0
+            nextbirth = randInt(BMIN, BMAX)
         }
 
-        for i, c := range cset {
+        csetnext := []Circle{}
+
+        for _, c := range cset {
             c.x = c.x + c.vx
             if c.x < 0 {
                 c.x = c.x + W
@@ -256,9 +291,15 @@ func main() {
             if c.y > H {
                 c.y = c.y - H
             }
-            cset[i] = c
+            c.t += 1
+            if c.t < c.lifespan {
+                csetnext = append(csetnext, c)   
+            } else {
+                fmt.Println("a circle died")
+            }
         }
 
+        cset = csetnext
 
     }
 
