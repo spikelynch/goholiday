@@ -18,16 +18,7 @@ TODO -
 
 take the code for the map and holiday lights out to its own module
 
-
-colour blending
-
 circles grow, shrink, disappear, get replaced by new ones
-
-'feather' edges of circles 
-
-
-
-
 
 */
 
@@ -36,13 +27,22 @@ const W = 6
 const H2 = 4
 const H = 8
 
-const VMAX = 0.1
+const VMAX = 0.05
+
+const NMIN = 2
+const NMAX = 5
+
+const RMIN = 0.3
+const RMAX = 2
 
 const SLEEP = 25
 
 const RESET = 2000
 
-const FEATHER = 1
+const BG_SAT = 0
+const BG_VALUE = 0
+
+const FEATHER = 1.5
 
 
 type Holiday struct {
@@ -114,9 +114,9 @@ func circles(n int) []Circle {
     for i := 0; i < n; i++ {
         circles[i].x = rand.Float64() * 6
         circles[i].y = rand.Float64() * 8
-        circles[i].vx = 2 * VMAX * rand.Float64() - VMAX 
+        circles[i].vx = 2 * VMAX * rand.Float64() - VMAX
         circles[i].vy = 2 * VMAX * rand.Float64() - VMAX
-        circles[i].r1 = rand.Float64() * 2 + 0.4
+        circles[i].r1 = RMIN + rand.Float64() * (RMAX - RMIN)
         circles[i].r2 = circles[i].r1 + FEATHER
         circles[i].r12 = circles[i].r1 * circles[i].r1
         circles[i].r22 = circles[i].r2 * circles[i].r2
@@ -156,7 +156,7 @@ func circleValue(c Circle, x, y float64) float64 {
     y1 := dy1 * dy1
     y2 := dy2 * dy2
     // return ( x1 + y1 < c.r2 || x1 + y2 < c.r2 || x2 + y1 < c.r2 || x2 + y2 < c.r2 )
-    v := distFunc(x1 + y1, c.r1, c.r2) + distFunc(x1 + y2, c.r1, c.r2) + distFunc(x2 + y1, c.r1, c.r2) + distFunc(x2 + y2, c.r1, c.r2) 
+    v := distFunc(x1 + y1, c.r12, c.r22) + distFunc(x1 + y2, c.r12, c.r22) + distFunc(x2 + y1, c.r12, c.r22) + distFunc(x2 + y2, c.r12, c.r22)
     if v < 1 {
         return v
     }
@@ -222,8 +222,8 @@ func main() {
 
     for {
         if tick == 0 {
-            bg = colorful.Hsv(rand.Float64() * 360, 1, 0.2) // CrndColor()
-            cset = circles(rand.Intn(4) + 1)
+            bg = colorful.Hsv(rand.Float64() * 360, BG_SAT, BG_VALUE)
+            cset = circles(NMIN + rand.Intn(NMAX - NMIN + 1))
         }
 
         for y, row := range m {
