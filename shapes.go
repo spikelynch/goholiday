@@ -7,6 +7,7 @@ import (
     "bytes"
     "encoding/binary"
     "time"
+    "math"
     "math/rand"
     "github.com/lucasb-eyer/go-colorful"
 
@@ -27,26 +28,31 @@ const W = 6
 const H2 = 4
 const H = 8
 
-const VMAX = 0.05
+const VXMIN = -0.001
+const VXMAX = 0.001
+
+const VYMIN = 0.02
+const VYMAX = 0.1
+
 
 const NMIN = 2
 const NMAX = 5
 
-const RMIN = 0.3
-const RMAX = 2
+const RMIN = 1.5
+const RMAX = 2.5
 
 const LMIN = 1200
-const LMAX = 4800
+const LMAX = 2400
 
 const SLEEP = 25
 
-const BMIN = 600
-const BMAX = 1200
+const BMIN = 400
+const BMAX = 700
 
 const BG_SAT = 0
 const BG_VALUE = 0
 
-const FUZZ = 1.2
+const FUZZ = 1.5
 
 
 type Holiday struct {
@@ -123,8 +129,8 @@ func rndCircle() Circle {
     c := new(Circle)
     c.x = rand.Float64() * 6
     c.y = rand.Float64() * 8
-    c.vx = 2 * VMAX * rand.Float64() - VMAX
-    c.vy = 2 * VMAX * rand.Float64() - VMAX
+    c.vx = VXMIN + rand.Float64() * (VXMAX - VXMIN)
+    c.vy = VYMIN + rand.Float64() * (VYMAX - VYMIN)
     c.r = RMIN + rand.Float64() * (RMAX - RMIN)
     c.hue = rand.Float64() * 360
     c.lifespan = randInt(LMIN, LMAX)
@@ -143,12 +149,17 @@ func circles(n int) []Circle {
 }
 
 
+// func lifecycle(c Circle) float64 {
+//     if c.t < c.lifespan / 2 {
+//         return c.r * 2 * float64(c.t) / float64(c.lifespan)
+//     } else {
+//         return c.r * 2 * float64(c.lifespan - c.t) / float64(c.lifespan)
+//     }
+// }
+
+
 func lifecycle(c Circle) float64 {
-    if c.t < c.lifespan / 2 {
-        return c.r * 2 * float64(c.t) / float64(c.lifespan)
-    } else {
-        return c.r * 2 * float64(c.lifespan - c.t) / float64(c.lifespan)
-    }
+    return c.r * math.Sin(math.Pi * float64(c.t) / float64(c.lifespan))
 }
 
 
@@ -168,8 +179,12 @@ func fuzz(d2, r1, r2 float64) float64 {
 func circleValue(c Circle, x, y float64) float64 {
     var dx1, dy1, dx2, dy2 float64
     rnow := lifecycle(c)
-    r1 := rnow * rnow
-    r2 := (rnow + FUZZ) * (rnow + FUZZ)
+    r2 := rnow * rnow
+    fr1 := rnow - FUZZ
+    r1 := fr1 * fr1
+    if fr1 < 0 {
+        r1 = -r1
+    } 
     dx1 = x - c.x
     if x < W2 {
         dx2 = dx1 + W
@@ -255,7 +270,7 @@ func main() {
     for {
         if tick == 0 {
             cset = append(cset, rndCircle())
-            fmt.Println("a circle was born")
+            //fmt.Println("a circle was born")
         }
 
         for y, row := range m {
@@ -294,9 +309,7 @@ func main() {
             c.t += 1
             if c.t < c.lifespan {
                 csetnext = append(csetnext, c)   
-            } else {
-                fmt.Println("a circle died")
-            }
+            } 
         }
 
         cset = csetnext
