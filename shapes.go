@@ -28,12 +28,11 @@ const W = 6
 const H2 = 4
 const H = 8
 
-const VXMIN = -0.001
-const VXMAX = 0.001
+const VXMIN = 0.03
+const VXMAX = 0.03
 
-const VYMIN = 0.02
-const VYMAX = 0.1
-
+const VYMIN = 0.01
+const VYMAX = 0.04
 
 const NMIN = 2
 const NMAX = 5
@@ -41,8 +40,10 @@ const NMAX = 5
 const RMIN = 1.5
 const RMAX = 2.5
 
-const LMIN = 1200
-const LMAX = 2400
+
+const LMIN = 2400
+const LMAX = 4800
+
 
 const SLEEP = 25
 
@@ -63,7 +64,7 @@ type Holiday struct {
 
 type Circle struct {
     x, y, vx, vy, r, hue float64
-    lifespan, t int
+    lifespan, t, pulse int
 }
 
 
@@ -135,6 +136,7 @@ func rndCircle() Circle {
     c.hue = rand.Float64() * 360
     c.lifespan = randInt(LMIN, LMAX)
     c.t = 0
+    c.pulse = 1
     return *c
 }
 
@@ -246,6 +248,7 @@ func main() {
     s, err := net.ResolveUDPAddr("udp4", CONNECT)
     c, err := net.DialUDP("udp4", nil, s)
     if err != nil {
+	fmt.Println("Could not connect")
         fmt.Println(err)
         return
     }
