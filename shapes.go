@@ -31,15 +31,15 @@ const H = 5
 const VXMIN = -0.001
 const VXMAX = 0.001
 
-const VYMIN = 0.02
-const VYMAX = 0.1
+const VYMIN = 0.1
+const VYMAX = 0.12
 
 
 const NMIN = 2
 const NMAX = 5
 
-const RMIN = 1.5
-const RMAX = 2.5
+const RMIN = 0.5
+const RMAX = 1.0
 
 const LMIN = 1200
 const LMAX = 2400
