@@ -19,8 +19,6 @@ import (
 const R = 11.0
 const H = 12.0
 
-const NLIGHTS = 25
-
 const VMAX = 5
 
 const SLEEP = 50
@@ -41,22 +39,46 @@ type Holiday struct {
 
 
 
-func makeMap() [][]int {
-    m := make([][]int, 8)
+// func makeMap_orig() [][]int {
+//     m := make([][]int, 8)
 
-    for i := 0; i < 8; i++ {
-        m[i] = make([]int, 6)
+//     for i := 0; i < 8; i++ {
+//         m[i] = make([]int, 6)
+//         m[i][0] = i;
+//         m[i][1] = 15 - i;
+//         m[i][2] = 17 + i;
+//         m[i][3] = 32 - i;
+//         m[i][4] = 34 + i;
+//         m[i][5] = 49 - i;
+//     }
+
+//     return m
+
+// }
+
+func makeMap() [][]int {
+    m := make([][]int, 5)
+
+    for i := 0; i < 5; i++ {
+        m[i] = make([]int, 10)
         m[i][0] = i;
-        m[i][1] = 15 - i;
-        m[i][2] = 17 + i;
-        m[i][3] = 32 - i;
-        m[i][4] = 34 + i;
-        m[i][5] = 49 - i;
+        m[i][1] = 9 - i;
+        m[i][2] = 10 + i;
+        m[i][3] = 19 - i;
+        m[i][4] = 20 + i;
+        m[i][5] = 29 - i;
+        m[i][6] = 30 + i;
+        m[i][7] = 39 - i;
+        m[i][8] = 40 + i;
+        m[i][9] = 49 - i;
+        fmt.Printf("%d: %v\n", i, m[i]);
     }
 
     return m
 
 }
+
+
 
 
 func showHoliday(hol *Holiday) {
