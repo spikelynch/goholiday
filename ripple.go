@@ -15,6 +15,18 @@ import (
     "image/png"
 )
 
+// TODO:
+// - put the parameters into a config file
+// - make a lightrunner program which can call in different pluggable
+//   visualisations as per config - the lightrunner handles the general
+//   stuff like the map (lights shape) and when it switches off at night
+// - make the map stuff more flexible - you should be able to pass in a 
+//   map with config
+
+const NIGHTTIME = 20
+const WAKETIME = 6
+
+
 
 const R = 11.0
 const H = 12.0
@@ -31,6 +43,7 @@ const SCREENSHOTS =  false
 const PI2 = math.Pi * 2
 
 const PNGTILE = 50
+
 
 type Holiday struct {
 	Header [10]uint8
@@ -109,6 +122,13 @@ func sendHoliday(conn *net.UDPConn, hol *Holiday) {
     }
 }
 
+
+func setHolidayDark(conn *net.UDPConn, hol *Holiday) {
+    for i := 0; i < 50; i++ {
+        setHolidayGlobe(hol, i, colorful.Color{0, 0, 0})
+    }
+    sendHoliday(conn, hol)
+}
 
 
 
@@ -224,9 +244,19 @@ func main() {
     var xfreq, yfreq, yfreqamp, yfreqmean, yfreqvel float64
     var xvel, yvel, twist, curl float64
 
-
     for {
+
         if tick == 0 {
+
+            tn := time.Now()
+            hour := tn.Hour()
+
+            if hour == NIGHTTIME {
+                setHolidayDark(c, hol)
+                sleeptime := (24 - NIGHTTIME + WAKETIME)
+                fmt.Printf("sleeping for %d hours", sleeptime)
+                time.Sleep(time.Duration(sleeptime) * time.Hour)
+            }
 
             hue = 360.0 * rand.Float64()
             spread = 10.0 + 80.0 * rand.Float64()
