@@ -49,8 +49,8 @@ const SLEEP = 25
 const BMIN = 400
 const BMAX = 700
 
-const BG_SAT = 0
-const BG_VALUE = 0
+const BG_SAT = 0.5
+const BG_VALUE = 0.4
 
 const FUZZ = 1.5
 
