@@ -23,8 +23,8 @@ const VMAX = 5
 
 const SLEEP = 50
 
-const FADE = 100
-const RESET = 8000
+const FADE = 10
+const RESET = 2000
 const PNGMOD = 1000
 const SCREENSHOTS =  false
 
@@ -229,8 +229,7 @@ func main() {
         if tick == 0 {
 
             hue = 360.0 * rand.Float64()
-            spread = 10.0 + 80.0 * rand.Float64()
-            //cvel = 0 //rand.Float64() * 2.0 - 1.0
+            spread = 40.0 + 30.0 * rand.Float64()
 
             xfreq = float64(rand.Intn(2) + 1)
             yfreqmean = float64(rand.Intn(2) + 1)
