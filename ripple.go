@@ -23,7 +23,7 @@ import (
 // - make the map stuff more flexible - you should be able to pass in a 
 //   map with config
 
-const NIGHTTIME = 20
+const NIGHTTIME = 22
 const WAKETIME = 6
 
 
