@@ -38,7 +38,7 @@ const SLEEP = 50
 const FADE = 10
 const RESET = 2000
 const PNGMOD = 1000
-const SCREENSHOTS =  false
+const SCREENSHOTS = false
 
 const PI2 = math.Pi * 2
 
@@ -153,14 +153,14 @@ func toColour(cols []colorful.Color, z float64) colorful.Color {
 }
 
 
-func hueRange(hue, spread, value, z float64) colorful.Color {
+func hueRange(hue, spread, dim, sat, value, z float64) colorful.Color {
     h := hue + spread * z
     if h < 0 {
         h = h + 360
     } else if h > 360 {
     h = h - 360
     }
-    return colorful.Hsv(h, 1, value)
+    return colorful.Hsv(h, sat, value * (dim * 0.5 * (z + 1) + 1 - dim))
 }
 
 
@@ -176,13 +176,13 @@ func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist, curl float64) float64
 
 
 
-func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread float64) {
+func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread, dim, sat float64) {
     img := image.NewNRGBA(image.Rect(0, 0, PNGTILE * 6, PNGTILE * 7))
 
     for y := 0; y < PNGTILE * 7; y++ {
         for x := 0; x < PNGTILE * 6; x++ {
             z := sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), xfreq, yfreq, xphase, yphase, twist, curl)
-            pixel := hueRange(hue, spread, 1.0, z)
+            pixel := hueRange(hue, spread, dim, sat, 1.0, z)
             img.Set(x, y, color.NRGBA{
                 R: uint8(pixel.R * 255),
                 G: uint8(pixel.G * 255),
@@ -239,7 +239,7 @@ func main() {
     run := 0
     frame := 0
 
-    var hue, spread float64
+    var hue, hdrift, spread, sat, dim float64
     var fade float64
     var xfreq, yfreq, yfreqamp, yfreqmean, yfreqvel float64
     var xvel, yvel, twist, curl float64
@@ -254,12 +254,15 @@ func main() {
             if hour == NIGHTTIME {
                 setHolidayDark(c, hol)
                 sleeptime := (24 - NIGHTTIME + WAKETIME)
-                fmt.Printf("sleeping for %d hours", sleeptime)
+                fmt.Printf("sleeping for %d hours\n", sleeptime)
                 time.Sleep(time.Duration(sleeptime) * time.Hour)
             }
 
             hue = 360.0 * rand.Float64()
-            spread = 40.0 + 30.0 * rand.Float64()
+	    hdrift = rand.Float64() * 1 - 0.5
+            spread = 180.0 //40.0 + 140.0 * rand.Float64()
+	    sat = 0.6 + 0.4 * rand.Float64()
+	    dim = rand.Float64()
 
             xfreq = float64(rand.Intn(2) + 1)
             yfreqmean = float64(rand.Intn(2) + 1)
@@ -290,17 +293,22 @@ func main() {
         for y, row := range m {
             for x, globe := range row {
                 z := sinusoidal(float64(x), float64(y), xfreq, yfreq, xphase, yphase, twist, curl)
-                colour := hueRange(hue, spread, fade, z)
+                colour := hueRange(hue, spread, dim, sat, fade, z)
                 setHolidayGlobe(hol, globe, colour)
             }
         }
 
-
+        hue += hdrift
+	if hue < 0 {
+	    hue += 360
+	} else if hue > 360 {
+	    hue -= 360
+	}
         sendHoliday(c, hol)
         time.Sleep(SLEEP * time.Millisecond)
         if SCREENSHOTS {
-            if tick % PNGMOD == 0 {
-                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread)
+            if tick == 0 {
+                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread, dim, sat)
                 frame += 1
             }
         }
@@ -312,6 +320,6 @@ func main() {
             run += 1
         }
 
-    }   
+    }
 
 }
