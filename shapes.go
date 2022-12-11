@@ -23,13 +23,16 @@ circles grow, shrink, disappear, get replaced by new ones
 
 */
 
-const W2 = 3
-const W = 6
-const H2 = 4
-const H = 8
+const W2 = 5
+const W = 10
+const H2 = 2.5
+const H = 5
 
-const VXMIN = 0.03
-const VXMAX = 0.03
+const VXMIN = -0.001
+const VXMAX = 0.001
+
+const VYMIN = 0.1
+const VYMAX = 0.12
 
 const VYMIN = 0.01
 const VYMAX = 0.04
@@ -37,8 +40,8 @@ const VYMAX = 0.04
 const NMIN = 2
 const NMAX = 5
 
-const RMIN = 1.5
-const RMAX = 2.5
+const RMIN = 0.5
+const RMAX = 1.0
 
 
 const LMIN = 2400
@@ -50,8 +53,8 @@ const SLEEP = 25
 const BMIN = 400
 const BMAX = 700
 
-const BG_SAT = 0
-const BG_VALUE = 0
+const BG_SAT = 0.5
+const BG_VALUE = 0.4
 
 const FUZZ = 1.5
 
@@ -70,17 +73,40 @@ type Circle struct {
 
 
 
-func makeMap() [][]int {
-    m := make([][]int, 8)
+// func makeMap() [][]int {
+//     m := make([][]int, 8)
 
-    for i := 0; i < 8; i++ {
-        m[i] = make([]int, 6)
+//     for i := 0; i < 8; i++ {
+//         m[i] = make([]int, 6)
+//         m[i][0] = i;
+//         m[i][1] = 15 - i;
+//         m[i][2] = 17 + i;
+//         m[i][3] = 32 - i;
+//         m[i][4] = 34 + i;
+//         m[i][5] = 49 - i;
+//     }
+
+//     return m
+
+// }
+
+
+func makeMap() [][]int {
+    m := make([][]int, 5)
+
+    for i := 0; i < 5; i++ {
+        m[i] = make([]int, 10)
         m[i][0] = i;
-        m[i][1] = 15 - i;
-        m[i][2] = 17 + i;
-        m[i][3] = 32 - i;
-        m[i][4] = 34 + i;
-        m[i][5] = 49 - i;
+        m[i][1] = 9 - i;
+        m[i][2] = 10 + i;
+        m[i][3] = 19 - i;
+        m[i][4] = 20 + i;
+        m[i][5] = 29 - i;
+        m[i][6] = 30 + i;
+        m[i][7] = 39 - i;
+        m[i][8] = 40 + i;
+        m[i][9] = 49 - i;
+        fmt.Printf("%d: %v\n", i, m[i]);
     }
 
     return m

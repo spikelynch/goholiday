@@ -15,24 +15,35 @@ import (
     "image/png"
 )
 
+// TODO:
+// - put the parameters into a config file
+// - make a lightrunner program which can call in different pluggable
+//   visualisations as per config - the lightrunner handles the general
+//   stuff like the map (lights shape) and when it switches off at night
+// - make the map stuff more flexible - you should be able to pass in a 
+//   map with config
+
+const NIGHTTIME = 22
+const WAKETIME = 6
+
+
 
 const R = 11.0
 const H = 12.0
-
-const NLIGHTS = 25
 
 const VMAX = 5
 
 const SLEEP = 50
 
-const FADE = 100
-const RESET = 8000
+const FADE = 10
+const RESET = 2000
 const PNGMOD = 1000
-const SCREENSHOTS =  false
+const SCREENSHOTS = false
 
 const PI2 = math.Pi * 2
 
 const PNGTILE = 50
+
 
 type Holiday struct {
 	Header [10]uint8
@@ -41,22 +52,46 @@ type Holiday struct {
 
 
 
-func makeMap() [][]int {
-    m := make([][]int, 8)
+// func makeMap_orig() [][]int {
+//     m := make([][]int, 8)
 
-    for i := 0; i < 8; i++ {
-        m[i] = make([]int, 6)
+//     for i := 0; i < 8; i++ {
+//         m[i] = make([]int, 6)
+//         m[i][0] = i;
+//         m[i][1] = 15 - i;
+//         m[i][2] = 17 + i;
+//         m[i][3] = 32 - i;
+//         m[i][4] = 34 + i;
+//         m[i][5] = 49 - i;
+//     }
+
+//     return m
+
+// }
+
+func makeMap() [][]int {
+    m := make([][]int, 5)
+
+    for i := 0; i < 5; i++ {
+        m[i] = make([]int, 10)
         m[i][0] = i;
-        m[i][1] = 15 - i;
-        m[i][2] = 17 + i;
-        m[i][3] = 32 - i;
-        m[i][4] = 34 + i;
-        m[i][5] = 49 - i;
+        m[i][1] = 9 - i;
+        m[i][2] = 10 + i;
+        m[i][3] = 19 - i;
+        m[i][4] = 20 + i;
+        m[i][5] = 29 - i;
+        m[i][6] = 30 + i;
+        m[i][7] = 39 - i;
+        m[i][8] = 40 + i;
+        m[i][9] = 49 - i;
+        fmt.Printf("%d: %v\n", i, m[i]);
     }
 
     return m
 
 }
+
+
 
 
 func showHoliday(hol *Holiday) {
@@ -88,6 +123,13 @@ func sendHoliday(conn *net.UDPConn, hol *Holiday) {
 }
 
 
+func setHolidayDark(conn *net.UDPConn, hol *Holiday) {
+    for i := 0; i < 50; i++ {
+        setHolidayGlobe(hol, i, colorful.Color{0, 0, 0})
+    }
+    sendHoliday(conn, hol)
+}
+
 
 
 func colorPair() []colorful.Color {
@@ -111,14 +153,14 @@ func toColour(cols []colorful.Color, z float64) colorful.Color {
 }
 
 
-func hueRange(hue, spread, value, z float64) colorful.Color {
+func hueRange(hue, spread, dim, sat, value, z float64) colorful.Color {
     h := hue + spread * z
     if h < 0 {
         h = h + 360
     } else if h > 360 {
     h = h - 360
     }
-    return colorful.Hsv(h, 1, value)
+    return colorful.Hsv(h, sat, value * (dim * 0.5 * (z + 1) + 1 - dim))
 }
 
 
@@ -134,13 +176,13 @@ func sinusoidal(x, y, xfreq, yfreq, xphase, yphase, twist, curl float64) float64
 
 
 
-func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread float64) {
+func screenshot(run, frame int, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread, dim, sat float64) {
     img := image.NewNRGBA(image.Rect(0, 0, PNGTILE * 6, PNGTILE * 7))
 
     for y := 0; y < PNGTILE * 7; y++ {
         for x := 0; x < PNGTILE * 6; x++ {
             z := sinusoidal(float64(x) / float64(PNGTILE), float64(y) / float64(PNGTILE), xfreq, yfreq, xphase, yphase, twist, curl)
-            pixel := hueRange(hue, spread, 1.0, z)
+            pixel := hueRange(hue, spread, dim, sat, 1.0, z)
             img.Set(x, y, color.NRGBA{
                 R: uint8(pixel.R * 255),
                 G: uint8(pixel.G * 255),
@@ -197,18 +239,30 @@ func main() {
     run := 0
     frame := 0
 
-    var hue, spread float64
+    var hue, hdrift, spread, sat, dim float64
     var fade float64
     var xfreq, yfreq, yfreqamp, yfreqmean, yfreqvel float64
     var xvel, yvel, twist, curl float64
 
-
     for {
+
         if tick == 0 {
 
+            tn := time.Now()
+            hour := tn.Hour()
+
+            if hour == NIGHTTIME {
+                setHolidayDark(c, hol)
+                sleeptime := (24 - NIGHTTIME + WAKETIME)
+                fmt.Printf("sleeping for %d hours\n", sleeptime)
+                time.Sleep(time.Duration(sleeptime) * time.Hour)
+            }
+
             hue = 360.0 * rand.Float64()
-            spread = 10.0 + 80.0 * rand.Float64()
-            //cvel = 0 //rand.Float64() * 2.0 - 1.0
+	    hdrift = rand.Float64() * 1 - 0.5
+            spread = 180.0 //40.0 + 140.0 * rand.Float64()
+	    sat = 0.6 + 0.4 * rand.Float64()
+	    dim = rand.Float64()
 
             xfreq = float64(rand.Intn(2) + 1)
             yfreqmean = float64(rand.Intn(2) + 1)
@@ -239,17 +293,22 @@ func main() {
         for y, row := range m {
             for x, globe := range row {
                 z := sinusoidal(float64(x), float64(y), xfreq, yfreq, xphase, yphase, twist, curl)
-                colour := hueRange(hue, spread, fade, z)
+                colour := hueRange(hue, spread, dim, sat, fade, z)
                 setHolidayGlobe(hol, globe, colour)
             }
         }
 
-
+        hue += hdrift
+	if hue < 0 {
+	    hue += 360
+	} else if hue > 360 {
+	    hue -= 360
+	}
         sendHoliday(c, hol)
         time.Sleep(SLEEP * time.Millisecond)
         if SCREENSHOTS {
-            if tick % PNGMOD == 0 {
-                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread)
+            if tick == 0 {
+                screenshot(run, frame, xfreq, yfreq, xphase, yphase, twist, curl, hue, spread, dim, sat)
                 frame += 1
             }
         }
@@ -261,6 +320,6 @@ func main() {
             run += 1
         }
 
-    }   
+    }
 
 }
